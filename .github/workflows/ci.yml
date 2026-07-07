@@ -165,8 +165,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 스크립트 실행
-          REVIEW=$(uv run python scripts/ai_reviewer.py)
+          if [ -z "$UPSTAGE_API_KEY" ]; then
+            cat > review_content.txt <<'EOF'
+          ### AI Review skipped
 
-          # gh CLI로 코멘트 달기
-          echo "$REVIEW" > review_content.txt
+          `UPSTAGE_API_KEY` is not configured, so the custom Upstage-based AI reviewer was skipped.
+          CodeRabbit reviews are handled separately by the CodeRabbit GitHub App.
+          EOF
+          else
+            uv run python scripts/ai_reviewer.py > review_content.txt
+          fi
+
+          cat review_content.txt
           gh pr comment ${{ github.event.pull_request.number }} --body-file review_content.txt
